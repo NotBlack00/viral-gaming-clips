@@ -1,4 +1,6 @@
 [server]
-maxUploadSize = 100
-maxMessageSize = 100
+address = "0.0.0.0"
+port = 8501
+maxUploadSize = 4096
+maxMessageSize = 4096
 headless = true
