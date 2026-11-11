@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -17,6 +18,8 @@ APP_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = APP_DIR / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+MAX_VIDEO_BYTES = 100 * 1024 * 1024
+MAX_VIDEO_SECONDS = 180
 
 
 def run_ffmpeg(args: list[str]) -> None:
@@ -29,7 +32,7 @@ def run_ffmpeg(args: list[str]) -> None:
 def probe_duration(path: Path) -> float:
     proc = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
                           capture_output=True, text=True)
-    match = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", proc.stderr)
+    match = re.search(r"Duration: (\\d+):(\\d+):(\\d+(?:\\.\\d+)?)", proc.stderr)
     if not match:
         raise RuntimeError("Non riesco a leggere la durata del video.")
     h, m, s = match.groups()
@@ -99,18 +102,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     lines = [header]
     for seg in segments:
-        text = (seg.text or "").strip().replace("\\", "").replace("{", "").replace("}", "")
-        if not text:
+        caption_text = (seg.text or "").strip().replace("\\\\", "").replace("{", "").replace("}", "")
+        if not caption_text:
             continue
-        text = re.sub(r"\s+", " ", text).replace(",", r"\,")
-        words = text.split()
+        caption_text = re.sub(r"\\s+", " ", caption_text).replace(",", r"\\,")
+        words = caption_text.split()
         chunks = [" ".join(words[i:i + 6]) for i in range(0, len(words), 6)]
         span = (float(seg.end) - float(seg.start)) / max(1, len(chunks))
         for i, chunk in enumerate(chunks):
             a = ass_time(float(seg.start) + i * span)
             b = ass_time(float(seg.start) + (i + 1) * span)
-            lines.append(f"Dialogue: 0,{a},{b},Viral,,0,0,0,,{chunk}\n")
-    path.write_text("\n".join(lines), encoding="utf-8-sig")
+            lines.append(f"Dialogue: 0,{a},{b},Viral,,0,0,0,,{chunk}\\n")
+    path.write_text("\\n".join(lines), encoding="utf-8-sig")
 
 
 def transcribe(video: Path, start: float, end: float, model_name: str):
@@ -132,7 +135,7 @@ def render_clip(source: Path, start: float, end: float, destination: Path,
     if caption_segments is not None:
         ass_path = destination.with_suffix(".ass")
         make_ass(ass_path, caption_segments)
-        escaped = str(ass_path.resolve()).replace("\\", "/").replace(":", r"\:")
+        escaped = str(ass_path.resolve()).replace("\\\\", "/").replace(":", r"\\:")
         filters += f",subtitles='{escaped}'"
     run_ffmpeg(["-ss", str(start), "-i", str(source), "-t", str(end - start),
                 "-vf", filters, "-map", "0:v:0", "-map", "0:a?",
@@ -141,40 +144,59 @@ def render_clip(source: Path, start: float, end: float, destination: Path,
                 "-pix_fmt", "yuv420p", "-y", str(destination)])
 
 
-st.set_page_config(page_title="VIRAL GAMING CLIPS", page_icon="🎮", layout="wide")
+st.set_page_config(page_title="VIRAL GAMING CLIPS", page_icon="🎮", layout="centered")
 st.title("🎮 VIRAL GAMING CLIPS")
-st.caption("Da una registrazione lunga a più clip verticali separate. Elaborazione locale sul tuo PC.")
-st.info("La prima versione individua i momenti con maggiore energia audio. È un filtro automatico iniziale: non può ancora capire da solo se un'esultanza, una kill o una battuta sia davvero virale.")
+st.caption("Versione web di prova · Aprila da tablet, telefono o PC")
+st.info(
+    "Questa versione gratuita è pensata per test brevi: video fino a 100 MB e 3 minuti. "
+    "Cerca picchi di energia audio, non riconosce ancora con certezza kill, vittorie o battute virali."
+)
+st.warning(
+    "Il video viene caricato ed elaborato sul server Streamlit, non direttamente sul tablet. "
+    "Per questa prova evita video privati o contenuti che non vuoi caricare online."
+)
 
-uploaded = st.file_uploader("Carica una registrazione gaming", type=["mp4", "mkv", "mov", "webm"])
-col1, col2, col3 = st.columns(3)
+uploaded = st.file_uploader(
+    "Scegli una registrazione gaming (MP4, MKV, MOV o WEBM)",
+    type=["mp4", "mkv", "mov", "webm"],
+    max_upload_size=100,
+)
+col1, col2 = st.columns(2)
 with col1:
-    clip_len = st.slider("Durata clip (secondi)", 15, 40, 25)
+    clip_len = st.slider("Durata di ogni clip", 15, 40, 25)
 with col2:
-    clip_count = st.slider("Numero massimo di clip", 1, 20, 5)
-with col3:
-    st.selectbox("Inquadratura verticale", ["Centro (automatico)"])
+    clip_count = st.slider("Numero massimo di clip", 1, 5, 3)
 
 with st.expander("Sottotitoli automatici in italiano"):
     captions = st.checkbox("Trascrivi e inserisci sottotitoli", value=False)
-    model_name = st.selectbox("Modello Whisper (più grande = più preciso e lento)",
-                              ["tiny", "base", "small"], index=1, disabled=not captions)
-    st.caption("La trascrizione viene eseguita in locale sulla CPU. Il primo avvio scarica il modello scelto.")
+    model_name = st.selectbox("Modello Whisper", ["tiny", "base"], index=0,
+                              disabled=not captions)
+    st.caption("La trascrizione può richiedere più tempo e risorse; per il primo test lasciala disattivata.")
 
 if uploaded:
-    st.write(f"File selezionato: **{uploaded.name}** · {uploaded.size / (1024**3):.2f} GB")
-    if st.button("Trova i momenti migliori e crea le clip", type="primary"):
+    st.write(f"File selezionato: **{uploaded.name}** · {uploaded.size / (1024**2):.1f} MB")
+    if uploaded.size > MAX_VIDEO_BYTES:
+        st.error("Il file supera il limite di 100 MB. Per la prova scegli un video più breve o più compresso.")
+    elif st.button("Crea le mie clip", type="primary", use_container_width=True):
         suffix = Path(uploaded.name).suffix.lower() or ".mp4"
         source = OUTPUT_DIR / ("video_sorgente" + suffix)
-        with st.spinner("Salvataggio del video sul PC..."):
-            source.write_bytes(uploaded.getbuffer())
         try:
+            with st.spinner("Caricamento temporaneo del video..."):
+                uploaded.seek(0)
+                with source.open("wb") as destination_file:
+                    shutil.copyfileobj(uploaded, destination_file, length=1024 * 1024)
+
             duration = probe_duration(source)
-            st.write(f"Durata rilevata: **{duration / 60:.1f} minuti**")
-            with st.spinner("Analisi della traccia audio: sto cercando i picchi..."):
+            st.write(f"Durata rilevata: **{duration:.0f} secondi**")
+            if duration > MAX_VIDEO_SECONDS:
+                raise RuntimeError("Per questa prova il video deve durare al massimo 3 minuti.")
+            if duration < clip_len:
+                raise RuntimeError("Il video è più corto della durata scelta per ogni clip.")
+
+            with st.spinner("Analizzo l'audio e cerco i momenti candidati..."):
                 moments = audio_highlights(source, clip_len, clip_count)
             if not moments:
-                st.warning("Non ho trovato momenti adatti. Prova a ridurre la durata delle clip.")
+                st.warning("Non ho trovato momenti adatti. Prova un'altra registrazione.")
             else:
                 st.success(f"Trovati {len(moments)} momenti candidati.")
                 progress = st.progress(0)
@@ -184,32 +206,39 @@ if uploaded:
                     target = OUTPUT_DIR / name
                     subtitle_segments = None
                     if captions:
-                        with st.spinner(f"Trascrizione italiana della clip {idx}/{len(moments)}..."):
+                        with st.spinner(f"Creo i sottotitoli della clip {idx}/{len(moments)}..."):
                             subtitle_segments = transcribe(source, start, end, model_name)
-                    with st.spinner(f"Esportazione clip {idx}/{len(moments)}..."):
+                    with st.spinner(f"Esporto la clip {idx}/{len(moments)}..."):
                         render_clip(source, start, end, target, subtitle_segments)
                     results.append((target, start, end))
                     progress.progress(idx / len(moments))
-                st.success("Esportazione completata.")
+
+                st.success("Clip pronte: scaricale singolarmente o tutte insieme.")
                 for target, start, end in results:
                     st.write(f"**{target.name}** · {int(start)}s – {int(end)}s")
                     st.video(str(target))
-                    st.download_button(f"Scarica {target.name}", target.read_bytes(),
-                                       file_name=target.name, mime="video/mp4",
-                                       key=target.name)
+                    with target.open("rb") as clip_file:
+                        st.download_button(
+                            f"Scarica {target.name}", clip_file,
+                            file_name=target.name, mime="video/mp4", key=target.name,
+                            use_container_width=True,
+                        )
+
                 zip_path = OUTPUT_DIR / "tutte_le_clip.zip"
                 with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                     for target, _, _ in results:
                         archive.write(target, arcname=target.name)
-                st.download_button("Scarica tutte le clip in un unico ZIP",
-                                   zip_path.read_bytes(), file_name=zip_path.name,
-                                   mime="application/zip")
-                st.caption(f"I file sono salvati anche nella cartella: {OUTPUT_DIR}")
+                with zip_path.open("rb") as zip_file:
+                    st.download_button(
+                        "Scarica tutte le clip (ZIP)", zip_file,
+                        file_name=zip_path.name, mime="application/zip",
+                        use_container_width=True,
+                    )
         except Exception as exc:
-            st.error(f"Si è verificato un errore: {exc}")
+            st.error(f"Non sono riuscito a completare l'elaborazione: {exc}")
         finally:
             if source.exists():
                 source.unlink(missing_ok=True)
 
 st.divider()
-st.caption("VIRAL GAMING CLIPS · Versione iniziale gratuita · Nessun video viene inviato a un servizio cloud da questa app.")
+st.caption("Prototipo gratuito. I file caricati e generati sono temporanei sul server e non vanno considerati come archivio permanente.")
