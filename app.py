@@ -4,6 +4,7 @@ import math
 import re
 import subprocess
 import tempfile
+import zipfile
 from pathlib import Path
 
 import imageio_ffmpeg
@@ -196,6 +197,13 @@ if uploaded:
                     st.download_button(f"Scarica {target.name}", target.read_bytes(),
                                        file_name=target.name, mime="video/mp4",
                                        key=target.name)
+                zip_path = OUTPUT_DIR / "tutte_le_clip.zip"
+                with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for target, _, _ in results:
+                        archive.write(target, arcname=target.name)
+                st.download_button("Scarica tutte le clip in un unico ZIP",
+                                   zip_path.read_bytes(), file_name=zip_path.name,
+                                   mime="application/zip")
                 st.caption(f"I file sono salvati anche nella cartella: {OUTPUT_DIR}")
         except Exception as exc:
             st.error(f"Si è verificato un errore: {exc}")
