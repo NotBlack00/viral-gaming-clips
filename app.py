@@ -216,7 +216,8 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
 st.set_page_config(page_title="VIRAL GAMING CLIPS", page_icon="🎮", layout="centered")
 st.title("🎮 VIRAL GAMING CLIPS")
 st.caption("Motore locale Windows · Analisi Fortnite · Clip verticali automatiche")
-st.success("Per i video grandi avvia questa app sul PC Windows e aprila dal tablet sulla stessa rete Wi-Fi. Il video resta sul tuo PC.")
+st.warning("Per elaborare registrazioni pesanti non usare il vecchio indirizzo .streamlit.app: avvia Avvia_Viral_Gaming_Clips.bat sul PC Windows. Il cloud non può usare la potenza del tuo computer.")
+st.success("Il PC esegue analisi e montaggio; il tablet è soltanto il pannello di controllo sulla stessa rete Wi-Fi.")
 ips = get_local_ips()
 if ips:
     st.write("**Apri dal Lenovo Tab M11:**")
