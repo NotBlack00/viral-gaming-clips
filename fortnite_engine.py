@@ -241,3 +241,89 @@ def detect_fortnite_moments(
     if progress_callback:
         progress_callback(1.0, "Analisi completata")
     return moments, warnings
+
+
+
+def build_smart_crop_expression(video: Path, start: float, end: float) -> tuple[int, str] | None:
+    """Estimate a smooth 9:16 crop from gameplay motion, avoiding HUD bands.
+
+    This follows the visually active area, not a player avatar. Fortnite POV footage
+    usually keeps the aiming/action area near the centre, so motion tracking is a
+    gentle reframing aid rather than semantic player detection.
+    """
+    cap = cv2.VideoCapture(str(video))
+    if not cap.isOpened():
+        return None
+    try:
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+        if width <= 0 or height <= 0:
+            return None
+        crop_width = min(width, max(2, int(round(height * 9 / 16))))
+        if width <= crop_width + 4:
+            return None
+
+        sample_step = 0.5
+        times = np.arange(max(0.0, start), max(start + 0.1, end), sample_step)
+        if len(times) < 2:
+            times = np.array([start, min(end, start + 0.5)], dtype=np.float32)
+        points: list[tuple[float, float]] = []
+        previous = None
+        for timestamp in times:
+            cap.set(cv2.CAP_PROP_POS_MSEC, float(timestamp) * 1000)
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                continue
+            small = cv2.resize(frame, (320, max(1, int(320 * height / width))),
+                               interpolation=cv2.INTER_AREA)
+            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+            if previous is None:
+                center = width / 2
+            else:
+                flow = cv2.calcOpticalFlowFarneback(
+                    previous, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0
+                )
+                magnitude = cv2.magnitude(flow[..., 0], flow[..., 1])
+                h, w = magnitude.shape
+                # Ignore top/bottom HUD areas and give the centre of the screen
+                # a modest preference, reducing shifts caused by peripheral UI.
+                y0, y1 = int(h * 0.16), int(h * 0.86)
+                roi = magnitude[y0:y1, :]
+                yy, xx = np.mgrid[y0:y1, 0:w]
+                centre_weight = np.exp(-((xx - w * 0.5) / (w * 0.42)) ** 2)
+                weights = np.maximum(roi - np.percentile(roi, 45), 0) * centre_weight
+                total = float(weights.sum())
+                motion_x = float((xx * weights).sum() / total) if total > 1e-5 else w / 2
+                center = motion_x * width / w
+            previous = gray
+            points.append((float(timestamp - start), center))
+
+        if not points:
+            return None
+        # Smooth tracking and limit movement speed to prevent distracting jumps.
+        smoothed: list[tuple[float, float]] = []
+        current = width / 2
+        last_t = 0.0
+        for t, target in points:
+            alpha = 0.32
+            proposed = current + (target - current) * alpha
+            max_delta = width * 0.075 * max(0.25, t - last_t)
+            current += float(np.clip(proposed - current, -max_delta, max_delta))
+            current = float(np.clip(current, crop_width / 2, width - crop_width / 2))
+            smoothed.append((t, current))
+            last_t = t
+
+        # FFmpeg evaluates this expression on every output frame, interpolating
+        # between sampled focus points for smooth camera movement.
+        expression = f"{smoothed[-1][1] - crop_width / 2:.2f}"
+        for i in range(len(smoothed) - 2, -1, -1):
+            t0, c0 = smoothed[i]
+            t1, c1 = smoothed[i + 1]
+            x0 = float(np.clip(c0 - crop_width / 2, 0, width - crop_width))
+            x1 = float(np.clip(c1 - crop_width / 2, 0, width - crop_width))
+            span = max(0.001, t1 - t0)
+            segment = f"({x0:.2f}+({x1 - x0:.2f})*(t-{t0:.3f})/{span:.3f})"
+            expression = f"if(lt(t,{t1:.3f}),{segment},{expression})"
+        return crop_width, expression
+    finally:
+        cap.release()
