@@ -43,7 +43,10 @@ L'OCR dipende dalla lingua, dalla posizione e dalla leggibilità dell'HUD. Non �
 ## Montaggio automatico
 
 - Esporta ogni momento come MP4 separato.
-- Composizione verticale 9:16 con gameplay intero e sfondo sfocato.
+- Esportazione verticale 9:16 a 1080×1920, adatta a TikTok e YouTube Shorts.
+- Modalità sfondo sfocato che mantiene visibile l’intero gameplay.
+- Modalità ritaglio verticale dinamico: analizza il movimento tra fotogrammi e sposta dolcemente l’inquadratura verso le aree più attive, con interpolazione per evitare scatti.
+- Il tracciamento dinamico segue l’area d’azione, non riconosce ancora semanticamente il personaggio o il mirino; va verificato sulle registrazioni reali.
 - Preset **Fortnite Hype**: zoom, breve shake e flash sul momento selezionato.
 - Preset **Pulito**: composizione verticale senza impatto aggressivo.
 - Sottotitoli italiani opzionali con evidenziazione parola per parola tramite Whisper.
