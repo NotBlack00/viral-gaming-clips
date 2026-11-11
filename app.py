@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import shutil
 import socket
+import sys
 import subprocess
 import tempfile
 import zipfile
@@ -47,17 +48,24 @@ def get_local_ips() -> list[str]:
 
 
 def pick_file_on_pc() -> str:
-    import tkinter as tk
-    from tkinter import filedialog
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    selected = filedialog.askopenfilename(
-        title="Scegli la registrazione Fortnite sul PC",
-        filetypes=[("Video", "*.mp4 *.mkv *.mov *.webm"), ("Tutti i file", "*.*")]
-    )
-    root.destroy()
-    return selected
+    picker_script = r'''
+import tkinter as tk
+from tkinter import filedialog
+root = tk.Tk()
+root.withdraw()
+root.attributes("-topmost", True)
+selected = filedialog.askopenfilename(
+    title="Scegli la registrazione Fortnite sul PC",
+    filetypes=[("Video", "*.mp4 *.mkv *.mov *.webm"), ("Tutti i file", "*.*")]
+)
+root.destroy()
+print(selected)
+'''
+    proc = subprocess.run([sys.executable, "-c", picker_script],
+                          capture_output=True, text=True)
+    if proc.returncode:
+        raise RuntimeError(proc.stderr.strip() or "Finestra di selezione non disponibile.")
+    return proc.stdout.strip()
 
 
 @st.cache_resource(show_spinner="Caricamento del modello Whisper...")
