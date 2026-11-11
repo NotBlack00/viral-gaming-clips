@@ -17,8 +17,22 @@ from fortnite_engine import detect_fortnite_moments
 APP_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = APP_DIR / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
-FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+FFMPEG = shutil.which("ffmpeg") or imageio_ffmpeg.get_ffmpeg_exe()
 MAX_UPLOAD_MB = 4096
+
+
+def detect_encoder() -> tuple[list[str], bool]:
+    try:
+        result = subprocess.run([FFMPEG, "-hide_banner", "-encoders"],
+                                capture_output=True, text=True, timeout=20)
+        if "h264_nvenc" in (result.stdout + result.stderr):
+            return ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "22"], True
+    except Exception:
+        pass
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21"], False
+
+
+VIDEO_ENCODER_ARGS, NVENC_DETECTED = detect_encoder()
 
 
 def run_ffmpeg(args: list[str]) -> None:
@@ -177,13 +191,26 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
             f"subtitles='{escaped}'[v]"
         )
 
-    run_ffmpeg([
+    command = [
         "-ss", str(start), "-i", str(source), "-t", str(end - start),
         "-filter_complex", filter_graph, "-map", "[v]", "-map", "0:a?",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+        *VIDEO_ENCODER_ARGS,
         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
         "-pix_fmt", "yuv420p", "-y", str(destination)
-    ])
+    ]
+    try:
+        run_ffmpeg(command)
+    except RuntimeError:
+        if not NVENC_DETECTED:
+            raise
+        cpu_command = [
+            "-ss", str(start), "-i", str(source), "-t", str(end - start),
+            "-filter_complex", filter_graph, "-map", "[v]", "-map", "0:a?",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
+            "-pix_fmt", "yuv420p", "-y", str(destination)
+        ]
+        run_ffmpeg(cpu_command)
 
 
 st.set_page_config(page_title="VIRAL GAMING CLIPS", page_icon="🎮", layout="centered")
