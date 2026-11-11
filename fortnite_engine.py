@@ -40,15 +40,14 @@ def _extract_audio_scores(video: Path, ffmpeg: str) -> np.ndarray:
             raise RuntimeError(proc.stderr[-1800:] or "Non riesco a estrarre l'audio.")
         rate, audio = wavfile.read(wav_path)
         if audio.ndim > 1:
-            audio = audio.mean(axis=1)
-        audio = audio.astype(np.float32)
+            audio = audio[:, 0]
         if not audio.size:
             raise RuntimeError("La traccia audio è vuota.")
         window = int(rate)
         count = max(1, len(audio) // window)
         rms = np.empty(count, dtype=np.float32)
         for i in range(count):
-            chunk = audio[i * window:(i + 1) * window]
+            chunk = audio[i * window:(i + 1) * window].astype(np.float32)
             rms[i] = math.sqrt(float(np.mean(chunk * chunk)) + 1e-9) if chunk.size else 0.0
         return rms
 
