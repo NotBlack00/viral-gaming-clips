@@ -32,7 +32,7 @@ def run_ffmpeg(args: list[str]) -> None:
 def probe_duration(path: Path) -> float:
     proc = subprocess.run([FFMPEG, "-hide_banner", "-i", str(path)],
                           capture_output=True, text=True)
-    match = re.search(r"Duration: (\\d+):(\\d+):(\\d+(?:\\.\\d+)?)", proc.stderr)
+    match = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", proc.stderr)
     if not match:
         raise RuntimeError("Non riesco a leggere la durata del video.")
     h, m, s = match.groups()
@@ -102,18 +102,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     lines = [header]
     for seg in segments:
-        caption_text = (seg.text or "").strip().replace("\\\\", "").replace("{", "").replace("}", "")
+        caption_text = (seg.text or "").strip().replace("\\", "").replace("{", "").replace("}", "")
         if not caption_text:
             continue
-        caption_text = re.sub(r"\\s+", " ", caption_text).replace(",", r"\\,")
+        caption_text = re.sub(r"\s+", " ", caption_text).replace(",", r"\,")
         words = caption_text.split()
         chunks = [" ".join(words[i:i + 6]) for i in range(0, len(words), 6)]
         span = (float(seg.end) - float(seg.start)) / max(1, len(chunks))
         for i, chunk in enumerate(chunks):
             a = ass_time(float(seg.start) + i * span)
             b = ass_time(float(seg.start) + (i + 1) * span)
-            lines.append(f"Dialogue: 0,{a},{b},Viral,,0,0,0,,{chunk}\\n")
-    path.write_text("\\n".join(lines), encoding="utf-8-sig")
+            lines.append(f"Dialogue: 0,{a},{b},Viral,,0,0,0,,{chunk}\n")
+    path.write_text("\n".join(lines), encoding="utf-8-sig")
 
 
 def transcribe(video: Path, start: float, end: float, model_name: str):
@@ -135,7 +135,7 @@ def render_clip(source: Path, start: float, end: float, destination: Path,
     if caption_segments is not None:
         ass_path = destination.with_suffix(".ass")
         make_ass(ass_path, caption_segments)
-        escaped = str(ass_path.resolve()).replace("\\\\", "/").replace(":", r"\\:")
+        escaped = str(ass_path.resolve()).replace("\\", "/").replace(":", r"\:")
         filters += f",subtitles='{escaped}'"
     run_ffmpeg(["-ss", str(start), "-i", str(source), "-t", str(end - start),
                 "-vf", filters, "-map", "0:v:0", "-map", "0:a?",
