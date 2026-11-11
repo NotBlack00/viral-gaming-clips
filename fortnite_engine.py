@@ -260,6 +260,7 @@ def build_smart_crop_expression(video: Path, start: float, end: float) -> tuple[
         if width <= 0 or height <= 0:
             return None
         crop_width = min(width, max(2, int(round(height * 9 / 16))))
+        crop_width -= crop_width % 2
         if width <= crop_width + 4:
             return None
 
