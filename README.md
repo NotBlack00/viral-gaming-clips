@@ -1,38 +1,34 @@
 # VIRAL GAMING CLIPS
 
-Editor automatico gratuito per registrazioni gaming, con priorità al riconoscimento di eventi Fortnite. Il PC Windows esegue analisi e rendering; il tablet può essere usato come pannello di controllo via Wi-Fi.
+Editor automatico gratuito per registrazioni gaming, con priorità al riconoscimento di eventi Fortnite. Il PC Windows esegue analisi e rendering; il tablet o un altro PC controllano l'app da qualsiasi rete tramite un collegamento Internet temporaneo protetto da password.
 
-## Architettura consigliata
+## Download della versione Windows
 
-- **PC Windows:** conserva il video, analizza i fotogrammi e crea le clip.
-- **Lenovo Tab M11 / smartphone:** apre l'interfaccia nel browser sulla rete locale.
-- **Nessun servizio cloud a pagamento:** i video non devono essere caricati su Streamlit Community Cloud.
+1. Apri la pagina [Releases](https://github.com/NotBlack00/viral-gaming-clips/releases).
+2. Scarica **VIRAL_GAMING_CLIPS_Windows.zip** dall'ultima release.
+3. Estrai lo ZIP in una cartella del PC Windows.
+4. Fai doppio clic su **VIRAL_GAMING_CLIPS.exe**.
+5. Al primo avvio l'eseguibile prepara Python 3.12, crea un ambiente isolato e installa automaticamente le librerie necessarie.
+6. Scarica automaticamente Cloudflare Tunnel e avvia il motore video sul PC.
+7. Nella finestra nera compariranno un link Internet temporaneo e una password. Invia entrambi privatamente a chi deve controllare l'app.
 
-## Avvio sul PC Windows
+Non chiudere la finestra nera: chiuderla interrompe il motore e il collegamento remoto. Per terminare, premi CTRL+C.
 
-1. Scarica il repository con **Code → Download ZIP** ed estrailo sul PC.
-2. Installa Python 3.11 o 3.12 da https://www.python.org/downloads/ (seleziona **Add Python to PATH**).
-3. Fai doppio clic su `Avvia_Viral_Gaming_Clips.bat`.
-4. Al primo avvio verranno installate le librerie gratuite; attendi il completamento.
-5. Il terminale mostrerà l'indirizzo locale dell'app, normalmente `http://localhost:8501`.
+## Accesso da un'altra rete
 
-## Apri il pannello dal Lenovo Tab M11
+- Il PC che elabora i video può essere a casa del tuo amico e il tablet in un'altra casa: non devono condividere la stessa rete Wi-Fi.
+- Apri il link HTTPS temporaneo da Chrome sul tablet o da un altro PC.
+- Inserisci la password temporanea mostrata nella finestra del PC ospitante.
+- Il collegamento cambia quando l'app viene riavviata: usa il nuovo link e la nuova password.
+- Non pubblicare link o password in chat pubbliche.
 
-1. Collega PC e tablet alla **stessa rete Wi-Fi**.
-2. Sul PC apri il Prompt dei comandi e digita `ipconfig`.
-3. Cerca l'indirizzo **IPv4** della scheda Wi-Fi, ad esempio `192.168.1.25`.
-4. Sul tablet apri Chrome e visita `http://192.168.1.25:8501`, sostituendo l'esempio con l'IP reale del PC.
-5. Se Windows Firewall chiede l'autorizzazione, consenti l'accesso sulle reti private.
+Il tunnel è fornito gratuitamente da Cloudflare Quick Tunnels e non richiede di configurare router o aprire porte. È un collegamento temporaneo, non un servizio sempre attivo né un dominio permanente.
 
-Non usare il vecchio link `.streamlit.app` per video pesanti: quello è un servizio cloud remoto e non usa la potenza del tuo PC.
+## Selezionare i video sul PC ospitante
 
-## Come elaborare registrazioni grandi
+Nell'interfaccia seleziona **Il video è già sul PC Windows** e premi **SCEGLI VIDEO DAL PC**. La finestra di selezione file si apre sul computer che ospita l'app, anche se il comando è stato premuto dal tablet. Il video resta sul disco del PC e non viene caricato dal tablet.
 
-Nell'interfaccia seleziona **Il video è già sul PC Windows** e premi **SCEGLI VIDEO DAL PC**. La finestra di selezione file si aprirà sul computer Windows anche se hai premuto il pulsante dal tablet. Scegli la registrazione Fortnite.
-
-Così il video non viene trasferito dal tablet: il motore lo legge direttamente dal disco del PC. In alternativa puoi caricare un file dal dispositivo, ma per registrazioni da molti GB è preferibile usare il selettore locale.
-
-Il limite configurato per il caricamento via browser è 4 GB; la dimensione realmente gestibile dipende da RAM, disco, browser e rete. Per video molto lunghi usa il percorso locale sul PC.
+In alternativa puoi usare il caricamento dal browser, ma per registrazioni da molti GB è preferibile il selettore locale. Il limite configurato per il caricamento via browser è 4 GB; la dimensione realmente gestibile dipende da RAM, disco, browser e connessione.
 
 ## Riconoscimento Fortnite
 
@@ -53,15 +49,20 @@ L'OCR dipende dalla lingua, dalla posizione e dalla leggibilità dell'HUD. Non �
 - Sottotitoli italiani opzionali con evidenziazione parola per parola tramite Whisper.
 - Download singolo o ZIP di tutte le clip.
 
-## Requisiti e limiti
+## Requisiti e prestazioni
 
-- Windows 10/11, Python 3.11 o 3.12.
+- Windows 10/11 a 64 bit e connessione Internet al primo avvio.
+- L'eseguibile prepara automaticamente Python 3.12 e le dipendenze.
 - SSD e RAM libera sufficienti. Per registrazioni di oltre un'ora è consigliato un PC con almeno 16 GB di RAM.
-- Il rendering prova a usare NVIDIA NVENC se il FFmpeg installato lo supporta; se l'encoder non parte, passa automaticamente a x264 su CPU.
+- Il rendering prova a usare NVIDIA NVENC se FFmpeg lo supporta; se l'encoder non parte, passa automaticamente a x264 su CPU.
 - L'analisi di registrazioni di 2 ore può richiedere diversi minuti o più, in base a risoluzione, codec e hardware.
 - Per sottotitoli Whisper, la prima esecuzione scarica il modello scelto.
 - I file esportati sono salvati nella cartella `outputs` del progetto.
 
-## Privacy
+## Sicurezza e privacy
 
-Quando usi il percorso locale, il video resta sul disco del PC. Se usi il caricamento browser dalla rete locale, il file viene trasferito al PC attraverso la tua rete Wi-Fi. Non caricare registrazioni private su link cloud pubblici.
+- L'interfaccia richiede una password casuale generata a ogni avvio.
+- Il link del tunnel è temporaneo e non va condiviso pubblicamente.
+- Il video selezionato dal disco resta sul PC ospitante. I dati dell'interfaccia e i download delle clip passano attraverso il collegamento Internet Cloudflare: non usare il tunnel per contenuti che non vuoi far transitare da un servizio terzo.
+- Il PC ospitante deve restare acceso e connesso a Internet durante l'elaborazione.
+- Il programma non apre porte sul router e non richiede che i dispositivi siano sulla stessa rete locale.
