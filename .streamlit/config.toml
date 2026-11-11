@@ -1,4 +1,4 @@
 [server]
-maxUploadSize = 4096
-maxMessageSize = 4096
+maxUploadSize = 100
+maxMessageSize = 100
 headless = true
