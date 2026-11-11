@@ -180,7 +180,7 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
         shake_start = max(0.0, impact - 0.18)
         shake_end = impact + 0.32
         filter_graph = (
-            " [base]split=2[bg][fg];"
+            "[base]split=2[bg][fg];"
             "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,gblur=sigma=22[bg2];"
             "[fg]scale=iw*1.07:ih*1.07,"
@@ -314,7 +314,7 @@ st.subheader("Montaggio automatico")
 composition = st.selectbox(
     "Formato verticale",
     ["Sfondo blur (mostra tutto)", "Ritaglio verticale dinamico (segue l'azione)"],
-    index=0,
+    index=1,
     help="Entrambe le modalità esportano in 9:16. Il ritaglio dinamico segue le zone con più movimento; non identifica semanticamente il personaggio."
 )
 style = st.selectbox(
