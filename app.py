@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hmac
+import os
 import re
 import shutil
 import socket
@@ -214,17 +216,30 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
 
 
 st.set_page_config(page_title="VIRAL GAMING CLIPS", page_icon="🎮", layout="centered")
+
+# Accesso remoto protetto: la password viene generata dal launcher Windows
+# e non è salvata nel repository.
+ACCESS_PASSWORD = os.environ.get("VGC_ACCESS_PASSWORD", "")
+if not ACCESS_PASSWORD:
+    st.error("Avvio non valido: manca la protezione di accesso. Avvia VIRAL GAMING CLIPS.exe.")
+    st.stop()
+
+if not st.session_state.get("vgc_authenticated", False):
+    st.title("🔐 Accesso a VIRAL GAMING CLIPS")
+    entered = st.text_input("Password temporanea mostrata sul PC che ospita l'app", type="password")
+    if st.button("ACCEDI", type="primary", use_container_width=True):
+        if hmac.compare_digest(entered, ACCESS_PASSWORD):
+            st.session_state["vgc_authenticated"] = True
+            st.rerun()
+        else:
+            st.error("Password non corretta.")
+    st.caption("Il collegamento remoto è temporaneo e resta attivo soltanto mentre il PC ospitante è acceso.")
+    st.stop()
+
 st.title("🎮 VIRAL GAMING CLIPS")
-st.caption("Motore locale Windows · Analisi Fortnite · Clip verticali automatiche")
-st.warning("Per elaborare registrazioni pesanti non usare il vecchio indirizzo .streamlit.app: avvia Avvia_Viral_Gaming_Clips.bat sul PC Windows. Il cloud non può usare la potenza del tuo computer.")
-st.success("Il PC esegue analisi e montaggio; il tablet è soltanto il pannello di controllo sulla stessa rete Wi-Fi.")
-ips = get_local_ips()
-if ips:
-    st.write("**Apri dal Lenovo Tab M11:**")
-    for ip in ips:
-        st.code(f"http://{ip}:8501")
-else:
-    st.caption("Per trovare l'indirizzo del PC, apri il Prompt dei comandi su Windows e digita ipconfig. Usa l'indirizzo IPv4.")
+st.caption("Motore Windows remoto · Analisi Fortnite · Clip verticali automatiche")
+st.success("Connessione remota protetta attiva. Il PC ospitante esegue analisi e montaggio: non serve essere sulla stessa rete Wi-Fi.")
+st.info("Il video selezionato dal disco resta sul PC che esegue l'app. I collegamenti e i download passano attraverso il tunnel Internet temporaneo.")
 
 st.info(
     "La selezione Fortnite combina lettura OCR del kill feed/Vittoria Royale, "
