@@ -56,4 +56,4 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: true
-          token: \${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
