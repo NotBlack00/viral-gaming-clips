@@ -2,7 +2,7 @@
 venv/
 __pycache__/
 *.py[cod]
-.streamlit/
+.streamlit/secrets.toml
 outputs/
 temp/
 *.wav
