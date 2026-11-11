@@ -46,6 +46,20 @@ def get_local_ips() -> list[str]:
         return []
 
 
+def pick_file_on_pc() -> str:
+    import tkinter as tk
+    from tkinter import filedialog
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    selected = filedialog.askopenfilename(
+        title="Scegli la registrazione Fortnite sul PC",
+        filetypes=[("Video", "*.mp4 *.mkv *.mov *.webm"), ("Tutti i file", "*.*")]
+    )
+    root.destroy()
+    return selected
+
+
 @st.cache_resource(show_spinner="Caricamento del modello Whisper...")
 def get_whisper_model(model_name: str):
     from faster_whisper import WhisperModel
@@ -193,9 +207,19 @@ uploaded = None
 temporary_source = False
 
 if source_mode.startswith("Il video"):
+    if "pc_video_path" not in st.session_state:
+        st.session_state["pc_video_path"] = ""
+    if st.button("SCEGLI VIDEO DAL PC", use_container_width=True):
+        try:
+            selected_path = pick_file_on_pc()
+            if selected_path:
+                st.session_state["pc_video_path"] = selected_path
+        except Exception as exc:
+            st.error(f"Non riesco ad aprire la finestra dei file sul PC: {exc}")
     path_text = st.text_input(
-        "Percorso completo del video sul PC",
-        placeholder=r"C:\Users\Nome\Videos\Fortnite\registrazione.mp4"
+        "Percorso completo del video sul PC (oppure usa il pulsante sopra)",
+        placeholder=r"C:\Users\Nome\Videos\Fortnite\registrazione.mp4",
+        key="pc_video_path"
     )
     if path_text.strip():
         source_path = Path(path_text.strip().strip('"')).expanduser()
@@ -204,7 +228,7 @@ if source_mode.startswith("Il video"):
             source_path = None
         else:
             st.caption(f"File trovato: {source_path.name} · {source_path.stat().st_size / (1024**3):.2f} GB")
-    st.caption("Su Windows: in Esplora file fai Shift + clic destro sul video → Copia come percorso, poi incollalo qui.")
+    st.caption("Se apri il pannello dal tablet, premi SCEGLI VIDEO DAL PC: la finestra di selezione si apre sul computer Windows. Il file resta sul disco del PC.")
 else:
     uploaded = st.file_uploader(
         "Seleziona la registrazione Fortnite",
