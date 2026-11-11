@@ -1,0 +1,59 @@
+name: Build Windows executable
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "fortnite_engine.py"
+      - "launcher.py"
+      - "requirements.txt"
+      - ".github/workflows/windows-exe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pyinstaller
+
+      - name: Build launcher executable
+        run: python -m PyInstaller --noconfirm --clean --onefile --console --name VIRAL_GAMING_CLIPS launcher.py
+
+      - name: Assemble Windows package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item dist/VIRAL_GAMING_CLIPS.exe package/
+          Copy-Item app.py, fortnite_engine.py, requirements.txt package/
+          @"
+          VIRAL GAMING CLIPS - Windows
+          Avvia VIRAL_GAMING_CLIPS.exe con un doppio clic.
+          Al primo avvio il programma prepara Python, installa le librerie e scarica il tunnel remoto.
+          Il link temporaneo e la password appariranno nella finestra nera.
+          Non condividere pubblicamente link o password.
+          "@ | Set-Content package/LEGGIMI.txt -Encoding UTF8
+          Compress-Archive -Path package/* -DestinationPath dist/VIRAL_GAMING_CLIPS_Windows.zip -Force
+
+      - name: Publish latest Windows package
+        uses: ncipollo/release-action@v1
+        with:
+          tag: windows-latest
+          name: VIRAL GAMING CLIPS - Windows
+          artifacts: dist/VIRAL_GAMING_CLIPS_Windows.zip
+          allowUpdates: true
+          replacesArtifacts: true
+          makeLatest: true
+          token: \${{ secrets.GITHUB_TOKEN }}
