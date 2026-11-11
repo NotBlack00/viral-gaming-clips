@@ -14,7 +14,7 @@ from pathlib import Path
 import imageio_ffmpeg
 import streamlit as st
 
-from fortnite_engine import detect_fortnite_moments
+from fortnite_engine import detect_fortnite_moments, build_smart_crop_expression
 
 APP_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = APP_DIR / "outputs"
@@ -158,10 +158,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 def render_clip(source: Path, start: float, end: float, event_time: float,
                 event_label: str, destination: Path, style: str,
-                caption_segments=None) -> None:
+                composition: str = "Sfondo blur (mostra tutto)", caption_segments=None) -> None:
     ass_path = destination.with_suffix(".ass")
     make_ass(ass_path, caption_segments, event_label, event_time - start)
     escaped = str(ass_path.resolve()).replace("\\", "/").replace(":", r"\:")
+
+    source_filter = "[0:v]null[base];"
+    if composition == "Ritaglio verticale dinamico (segue l'azione)":
+        tracking = build_smart_crop_expression(source, start, end)
+        if tracking is not None:
+            crop_width, crop_x = tracking
+            source_filter = (
+                f"[0:v]crop=w={crop_width}:h=ih:x='{crop_x}':y=0,"
+                "setsar=1[base];"
+            )
 
     if style == "Fortnite Hype (zoom + shake + flash)":
         impact = max(0.0, event_time - start)
@@ -170,7 +180,7 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
         shake_start = max(0.0, impact - 0.18)
         shake_end = impact + 0.32
         filter_graph = (
-            "[0:v]split=2[bg][fg];"
+            " [base]split=2[bg][fg];"
             "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,gblur=sigma=22[bg2];"
             "[fg]scale=iw*1.07:ih*1.07,"
@@ -185,7 +195,7 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
         )
     else:
         filter_graph = (
-            "[0:v]split=2[bg][fg];"
+            "[base]split=2[bg][fg];"
             "[bg]scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,gblur=sigma=22[bg2];"
             "[fg]scale=1080:1920:force_original_aspect_ratio=decrease[fg2];"
@@ -301,6 +311,12 @@ ocr_enabled = st.checkbox("Leggi kill feed e scritte HUD (OCR)", value=True)
 st.caption("Cerca parole come Eliminated, Knocked, Victory Royale e alcune varianti italiane. La lingua dell'interfaccia del gioco influenza i risultati.")
 
 st.subheader("Montaggio automatico")
+composition = st.selectbox(
+    "Formato verticale",
+    ["Sfondo blur (mostra tutto)", "Ritaglio verticale dinamico (segue l'azione)"],
+    index=0,
+    help="Entrambe le modalità esportano in 9:16. Il ritaglio dinamico segue le zone con più movimento; non identifica semanticamente il personaggio."
+)
 style = st.selectbox(
     "Stile grafico",
     ["Fortnite Hype (zoom + shake + flash)", "Pulito (sfondo sfocato + sottotitoli)"],
@@ -309,7 +325,7 @@ style = st.selectbox(
 captions = st.checkbox("Aggiungi sottotitoli italiani parola per parola", value=False)
 model_name = st.selectbox("Modello sottotitoli", ["tiny", "base", "small"], index=0,
                           disabled=not captions)
-st.caption("I sottotitoli usano Whisper. La prima esecuzione scarica il modello sul PC.")
+st.caption("Esportazione verticale 1080×1920 (9:16), adatta a TikTok e YouTube Shorts. I sottotitoli usano Whisper: la prima esecuzione scarica il modello sul PC.")
 
 if st.button("ANALIZZA FORTNITE E CREA LE CLIP", type="primary", use_container_width=True):
     if source_path is None and uploaded is None:
@@ -361,7 +377,7 @@ if st.button("ANALIZZA FORTNITE E CREA LE CLIP", type="primary", use_container_w
                             subtitle_segments = transcribe(working_source, start, end, model_name)
                     with st.spinner(f"Montaggio clip {idx}/{len(moments)}..."):
                         render_clip(working_source, start, end, event_time,
-                                    moment["label"], target, style, subtitle_segments)
+                                    moment["label"], target, style, composition, subtitle_segments)
                     results.append((target, moment))
                     export_progress.progress(idx / len(moments))
 
