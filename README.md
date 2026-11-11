@@ -28,14 +28,9 @@ Non usare il vecchio link `.streamlit.app` per video pesanti: quello è un servi
 
 ## Come elaborare registrazioni grandi
 
-Nell'interfaccia seleziona **Il video è già sul PC Windows**. In Esplora file sul PC:
+Nell'interfaccia seleziona **Il video è già sul PC Windows** e premi **SCEGLI VIDEO DAL PC**. La finestra di selezione file si aprirà sul computer Windows anche se hai premuto il pulsante dal tablet. Scegli la registrazione Fortnite.
 
-1. Trova la registrazione Fortnite.
-2. Fai **Shift + clic destro** sul file.
-3. Seleziona **Copia come percorso**.
-4. Incolla il percorso nel pannello aperto sul tablet.
-
-Così il video non viene trasferito dal tablet: il motore lo legge direttamente dal disco del PC. In alternativa puoi caricare un file dal dispositivo, ma per registrazioni da molti GB è preferibile usare il percorso locale.
+Così il video non viene trasferito dal tablet: il motore lo legge direttamente dal disco del PC. In alternativa puoi caricare un file dal dispositivo, ma per registrazioni da molti GB è preferibile usare il selettore locale.
 
 Il limite configurato per il caricamento via browser è 4 GB; la dimensione realmente gestibile dipende da RAM, disco, browser e rete. Per video molto lunghi usa il percorso locale sul PC.
 
