@@ -4,6 +4,7 @@ import re
 import shutil
 import socket
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -53,10 +54,13 @@ def get_whisper_model(model_name: str):
 
 def transcribe(video: Path, start: float, end: float, model_name: str):
     model = get_whisper_model(model_name)
-    segments, _ = model.transcribe(str(video), language="it", vad_filter=True,
-                                   beam_size=3, word_timestamps=True,
-                                   clip_timestamps=[start, end])
-    return list(segments)
+    with tempfile.TemporaryDirectory(prefix="vgc_caption_") as tmp:
+        wav_path = Path(tmp) / "clip.wav"
+        run_ffmpeg(["-ss", str(start), "-i", str(video), "-t", str(end - start),
+                    "-vn", "-ac", "1", "-ar", "16000", str(wav_path)])
+        segments, _ = model.transcribe(str(wav_path), language="it", vad_filter=True,
+                                       beam_size=3, word_timestamps=True)
+        return list(segments)
 
 
 def ass_time(seconds: float) -> str:
@@ -136,7 +140,7 @@ def render_clip(source: Path, start: float, end: float, event_time: float,
             f"x='(iw-ow)/2+if(between(t,{shake_start:.3f},{shake_end:.3f}),sin(t*95)*10,0)':"
             f"y='(ih-oh)/2+if(between(t,{shake_start:.3f},{shake_end:.3f}),cos(t*105)*10,0)',"
             "scale=1080:1920:force_original_aspect_ratio=decrease[fg2];"
-            "[bg2][fg2]overlay=(W-w)/2:(H-h)/2,"
+            "[bg2][fg2]overlay=(W-w)/2:(H-h)/2,setsar=1,"
             f"eq=brightness=0.16:enable='between(t,{flash_start:.3f},{flash_end:.3f})',"
             "unsharp=5:5:0.7:3:3:0.0,"
             f"subtitles='{escaped}'[v]"
