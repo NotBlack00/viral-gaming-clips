@@ -1,44 +1,72 @@
 # VIRAL GAMING CLIPS
 
-Generatore gratuito di clip gaming verticali, con una prima interfaccia web utilizzabile da Android, iPhone e PC.
+Editor automatico gratuito per registrazioni gaming, con priorità al riconoscimento di eventi Fortnite. Il PC Windows esegue analisi e rendering; il tablet può essere usato come pannello di controllo via Wi-Fi.
 
-## Prova dal tablet Android (gratuita)
+## Architettura consigliata
 
-1. Apri [Streamlit Community Cloud](https://share.streamlit.io/) e accedi con GitHub.
-2. Premi **Create app**.
-3. Seleziona il repository **NotBlack00/viral-gaming-clips**, branch **main** e file **app.py**.
-4. Premi **Deploy** e attendi l'installazione.
-5. Apri il link `.streamlit.app` ottenuto con Chrome sul Lenovo Tab M11.
+- **PC Windows:** conserva il video, analizza i fotogrammi e crea le clip.
+- **Lenovo Tab M11 / smartphone:** apre l'interfaccia nel browser sulla rete locale.
+- **Nessun servizio cloud a pagamento:** i video non devono essere caricati su Streamlit Community Cloud.
 
-Il repository è pubblico e l'app può essere pubblicata gratuitamente su Streamlit Community Cloud. Il deploy deve essere avviato dal proprietario dell'account: non è stato avviato automaticamente.
+## Avvio sul PC Windows
 
-## Limiti della demo gratuita online
+1. Scarica il repository con **Code → Download ZIP** ed estrailo sul PC.
+2. Installa Python 3.11 o 3.12 da https://www.python.org/downloads/ (seleziona **Add Python to PATH**).
+3. Fai doppio clic su `Avvia_Viral_Gaming_Clips.bat`.
+4. Al primo avvio verranno installate le librerie gratuite; attendi il completamento.
+5. Il terminale mostrerà l'indirizzo locale dell'app, normalmente `http://localhost:8501`.
 
-- Video massimo: **100 MB**.
-- Durata massima: **3 minuti**.
-- Massimo 5 clip per elaborazione.
-- Il video viene caricato sul server Streamlit per essere elaborato: non caricare video privati o sensibili.
-- Le risorse gratuite del server sono limitate; elaborazioni pesanti potrebbero interrompersi.
-- I file generati sono temporanei: scarica subito le clip.
+## Apri il pannello dal Lenovo Tab M11
 
-Il video originale da circa 1,35 GB e oltre due ore **non è adatto a questa demo cloud gratuita**. Per quello servirà l'elaborazione locale su PC o un'infrastruttura diversa.
+1. Collega PC e tablet alla **stessa rete Wi-Fi**.
+2. Sul PC apri il Prompt dei comandi e digita `ipconfig`.
+3. Cerca l'indirizzo **IPv4** della scheda Wi-Fi, ad esempio `192.168.1.25`.
+4. Sul tablet apri Chrome e visita `http://192.168.1.25:8501`, sostituendo l'esempio con l'IP reale del PC.
+5. Se Windows Firewall chiede l'autorizzazione, consenti l'accesso sulle reti private.
 
-## Funzioni del prototipo
+Non usare il vecchio link `.streamlit.app` per video pesanti: quello è un servizio cloud remoto e non usa la potenza del tuo PC.
 
-- Analisi dell'audio per individuare picchi di energia.
-- Esportazione di clip MP4 separate.
-- Formato verticale 9:16 con ritaglio centrale.
-- Sottotitoli italiani opzionali tramite Whisper.
+## Come elaborare registrazioni grandi
 
-## Limiti tecnici
+Nell'interfaccia seleziona **Il video è già sul PC Windows**. In Esplora file sul PC:
 
-Il rilevamento audio è una prima euristica: un picco può corrispondere a un'esplosione o alla musica, non necessariamente a un momento virale. Il ritaglio è centrato e non segue ancora il giocatore o l'azione. I sottotitoli sono visualizzati in blocchi, non animati parola per parola.
+1. Trova la registrazione Fortnite.
+2. Fai **Shift + clic destro** sul file.
+3. Seleziona **Copia come percorso**.
+4. Incolla il percorso nel pannello aperto sul tablet.
 
-## Avvio locale su Windows
+Così il video non viene trasferito dal tablet: il motore lo legge direttamente dal disco del PC. In alternativa puoi caricare un file dal dispositivo, ma per registrazioni da molti GB è preferibile usare il percorso locale.
 
-1. Installa Python 3.11 o 3.12.
-2. Scarica il repository come ZIP ed estrailo.
-3. Avvia `Avvia_Viral_Gaming_Clips.bat`.
-4. Apri l'indirizzo locale mostrato nel browser.
+Il limite configurato per il caricamento via browser è 4 GB; la dimensione realmente gestibile dipende da RAM, disco, browser e rete. Per video molto lunghi usa il percorso locale sul PC.
 
-Per video lunghi è preferibile usare un PC con memoria e spazio liberi sufficienti.
+## Riconoscimento Fortnite
+
+Il motore combina:
+- OCR del testo HUD per cercare parole chiave del kill feed, eliminazioni, Knocked e Victory Royale (in inglese e alcune varianti italiane);
+- variazioni del movimento tra fotogrammi;
+- picchi di energia audio;
+- punteggio combinato e selezione di finestre non sovrapposte.
+
+L'OCR dipende dalla lingua, dalla posizione e dalla leggibilità dell'HUD. Non è un modello che comprende perfettamente il gameplay: i candidati vanno controllati nell'anteprima e alcuni eventi potrebbero non essere rilevati.
+
+## Montaggio automatico
+
+- Esporta ogni momento come MP4 separato.
+- Composizione verticale 9:16 con gameplay intero e sfondo sfocato.
+- Preset **Fortnite Hype**: zoom, breve shake e flash sul momento selezionato.
+- Preset **Pulito**: composizione verticale senza impatto aggressivo.
+- Sottotitoli italiani opzionali con evidenziazione parola per parola tramite Whisper.
+- Download singolo o ZIP di tutte le clip.
+
+## Requisiti e limiti
+
+- Windows 10/11, Python 3.11 o 3.12.
+- SSD e RAM libera sufficienti. Per registrazioni di oltre un'ora è consigliato un PC con almeno 16 GB di RAM.
+- Il rendering usa FFmpeg e CPU; non è garantito che sfrutti la GPU NVIDIA.
+- L'analisi di registrazioni di 2 ore può richiedere diversi minuti o più, in base a risoluzione, codec e hardware.
+- Per sottotitoli Whisper, la prima esecuzione scarica il modello scelto.
+- I file esportati sono salvati nella cartella `outputs` del progetto.
+
+## Privacy
+
+Quando usi il percorso locale, il video resta sul disco del PC. Se usi il caricamento browser dalla rete locale, il file viene trasferito al PC attraverso la tua rete Wi-Fi. Non caricare registrazioni private su link cloud pubblici.
