@@ -183,6 +183,12 @@ def detect_fortnite_moments(
             if 0 <= position < timeline_size:
                 scores[position] += weight
 
+    if not scores.size or float(np.max(scores)) < 0.08:
+        warnings.append("Non ho rilevato segnali abbastanza forti per proporre clip affidabili.")
+        if progress_callback:
+            progress_callback(1.0, "Analisi completata")
+        return [], warnings
+
     min_distance = max(8, int(clip_seconds * 0.65))
     peaks, _ = find_peaks(scores, distance=min_distance, prominence=0.15)
     if len(peaks) == 0:
