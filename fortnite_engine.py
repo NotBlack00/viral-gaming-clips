@@ -71,8 +71,10 @@ def _read_ocr_text(engine, image: np.ndarray) -> list[tuple[str, float]]:
     if result is None:
         return output
     if hasattr(result, "txts"):
-        texts = getattr(result, "txts") or []
-        scores = getattr(result, "scores", None) or []
+        texts = getattr(result, "txts", None)
+        scores = getattr(result, "scores", None)
+        texts = list(texts) if texts is not None else []
+        scores = list(scores) if scores is not None else []
         for i, value in enumerate(texts):
             score = float(scores[i]) if i < len(scores) else 0.6
             output.append((str(value).lower(), score))
