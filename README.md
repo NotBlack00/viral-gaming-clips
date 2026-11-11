@@ -57,7 +57,7 @@ L'OCR dipende dalla lingua, dalla posizione e dalla leggibilità dell'HUD. Non �
 
 - Windows 10/11, Python 3.11 o 3.12.
 - SSD e RAM libera sufficienti. Per registrazioni di oltre un'ora è consigliato un PC con almeno 16 GB di RAM.
-- Il rendering usa FFmpeg e CPU; non è garantito che sfrutti la GPU NVIDIA.
+- Il rendering prova a usare NVIDIA NVENC se il FFmpeg installato lo supporta; se l'encoder non parte, passa automaticamente a x264 su CPU.
 - L'analisi di registrazioni di 2 ore può richiedere diversi minuti o più, in base a risoluzione, codec e hardware.
 - Per sottotitoli Whisper, la prima esecuzione scarica il modello scelto.
 - I file esportati sono salvati nella cartella `outputs` del progetto.
